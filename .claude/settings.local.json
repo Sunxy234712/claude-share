@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /d/ai/shares -maxdepth 2 -type f -name *.json -o -name *.md -o -name *.toml -o -name *.py -o -name *.js -o -name *.ts -o -name *.yml -o -name *.yaml -o -name Makefile -o -name .cursorrules)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(mkdir -p D:/ai/shares/backend)",
+      "Bash(npm init:*)",
+      "Bash(npm run:*)",
+      "Bash(node db/migrate.js)",
+      "Bash(node db/seed.js)",
+      "Bash(node db/seedAccounts.js)",
+      "Bash(xargs ls:*)",
+      "Bash(npx drizzle-kit:*)",
+      "Bash(node:*)",
+      "WebFetch(domain:www.runoob.com)"
+    ]
+  }
+}
