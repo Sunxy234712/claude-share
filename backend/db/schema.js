@@ -99,7 +99,117 @@ const transactions = pgTable('transactions', {
   createdAt:        timestamp('created_at').defaultNow(),
 })
 
+// 理财产品类型枚举
+const wealthProductTypeEnum = pgEnum('wealth_product_type', ['fixed_income', 'structured', 'floating_rate'])
+
+// 理财产品状态枚举
+const wealthStatusEnum = pgEnum('wealth_status', ['on_sale', 'off_sale', 'matured'])
+
+// 理财产品表
+const wealthProducts = pgTable('wealth_products', {
+  id: serial('id').primaryKey(),
+  productCode: varchar('product_code', { length: 20 }).notNull().unique(),
+  productName: varchar('product_name', { length: 100 }).notNull(),
+  productType: wealthProductTypeEnum('product_type').notNull().default('fixed_income'),
+  expectedReturn: numeric('expected_return', { precision: 5, scale: 2 }).notNull(), // 年化收益率%
+  minAmount: numeric('min_amount', { precision: 15, scale: 2 }).notNull(),
+  maxAmount: numeric('max_amount', { precision: 15, scale: 2 }).notNull(),
+  termDays: integer('term_days').notNull(),
+  status: wealthStatusEnum('status').notNull().default('on_sale'),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+// 理财订单状态枚举
+const wealthOrderStatusEnum = pgEnum('wealth_order_status', ['active', 'redeemed', 'matured'])
+
+// 理财订单表
+const wealthOrders = pgTable('wealth_orders', {
+  id: serial('id').primaryKey(),
+  accountId: integer('account_id').notNull(),
+  productId: integer('product_id').notNull(),
+  orderNo: varchar('order_no', { length: 30 }).notNull().unique(),
+  amount: numeric('amount', { precision: 15, scale: 2 }).notNull(),
+  purchaseDate: timestamp('purchase_date').notNull().defaultNow(),
+  maturityDate: timestamp('maturity_date').notNull(),
+  expectedIncome: numeric('expected_income', { precision: 15, scale: 2 }).notNull(),
+  actualIncome: numeric('actual_income', { precision: 15, scale: 2 }).default('0'),
+  status: wealthOrderStatusEnum('status').notNull().default('active'),
+  redemptionDate: timestamp('redemption_date'),
+  tellerNo: varchar('teller_no', { length: 20 }),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+// 基金类型枚举
+const fundTypeEnum = pgEnum('fund_type', ['equity', 'bond', 'mixed', 'money'])
+
+// 基金状态枚举
+const fundStatusEnum = pgEnum('fund_status', ['on_sale', 'suspended'])
+
+// 基金表
+const funds = pgTable('funds', {
+  id: serial('id').primaryKey(),
+  fundCode: varchar('fund_code', { length: 10 }).notNull().unique(),
+  fundName: varchar('fund_name', { length: 100 }).notNull(),
+  fundType: fundTypeEnum('fund_type').notNull().default('equity'),
+  nav: numeric('nav', { precision: 10, scale: 4 }).notNull(), // 净值
+  navDate: timestamp('nav_date').notNull().defaultNow(),
+  performance1m: numeric('performance_1m', { precision: 5, scale: 2 }).default('0'), // 1月收益率%
+  performance1y: numeric('performance_1y', { precision: 5, scale: 2 }).default('0'), // 1年收益率%
+  manager: varchar('manager', { length: 50 }),
+  status: fundStatusEnum('status').notNull().default('on_sale'),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+// 基金持仓表
+const fundHoldings = pgTable('fund_holdings', {
+  id: serial('id').primaryKey(),
+  accountId: integer('account_id').notNull(),
+  fundId: integer('fund_id').notNull(),
+  shares: numeric('shares', { precision: 15, scale: 4 }).notNull(), // 持仓份额
+  purchasePrice: numeric('purchase_price', { precision: 10, scale: 4 }).notNull(),
+  purchaseDate: timestamp('purchase_date').notNull().defaultNow(),
+  tellerNo: varchar('teller_no', { length: 20 }),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+// 贵金属类型枚举
+const metalTypeEnum = pgEnum('metal_type', ['gold', 'silver', 'platinum', 'copper'])
+
+// 贵金属交易状态枚举
+const metalStatusEnum = pgEnum('metal_status', ['trading', 'suspension'])
+
+// 贵金属表
+const preciousMetals = pgTable('precious_metals', {
+  id: serial('id').primaryKey(),
+  metalType: metalTypeEnum('metal_type').notNull(),
+  purity: varchar('purity', { length: 20 }).notNull(), // 如 Au9999
+  currentPrice: numeric('current_price', { precision: 12, scale: 2 }).notNull(), // 克/元
+  priceUpdateTime: timestamp('price_update_time').notNull().defaultNow(),
+  dailyChange: numeric('daily_change', { precision: 5, scale: 2 }).default('0'), // 当日涨跌%
+  status: metalStatusEnum('status').notNull().default('trading'),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+// 贵金属存储方式枚举
+const metalStorageTypeEnum = pgEnum('metal_storage_type', ['account', 'pending_delivery'])
+
+// 贵金属持仓表
+const metalHoldings = pgTable('metal_holdings', {
+  id: serial('id').primaryKey(),
+  accountId: integer('account_id').notNull(),
+  metalId: integer('metal_id').notNull(),
+  amount: numeric('amount', { precision: 12, scale: 2 }).notNull(), // 克数
+  averageCost: numeric('average_cost', { precision: 12, scale: 2 }).notNull(),
+  storageType: metalStorageTypeEnum('storage_type').notNull().default('account'),
+  tellerNo: varchar('teller_no', { length: 20 }),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
 module.exports = {
   tellers, menus, customers, accounts, cards, transactions,
+  wealthProducts, wealthOrders, funds, fundHoldings, preciousMetals, metalHoldings,
   roleEnum, statusEnum, transactionTypeEnum, channelTypeEnum,
+  wealthProductTypeEnum, wealthStatusEnum, wealthOrderStatusEnum,
+  fundTypeEnum, fundStatusEnum,
+  metalTypeEnum, metalStatusEnum, metalStorageTypeEnum,
 }

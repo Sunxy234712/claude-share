@@ -5,6 +5,11 @@ export function getAccounts(params) {
   return request.get('/accounts', { params })
 }
 
+// 单个账户查询
+export function getAccountById(accountId) {
+  return request.get(`/accounts/${accountId}`)
+}
+
 // 开户
 export function openAccount(data) {
   return request.post('/accounts/open', data)

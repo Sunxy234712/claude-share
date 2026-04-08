@@ -5,6 +5,7 @@ const authRoutes = require('./routes/auth')
 const menuRoutes = require('./routes/menus')
 const accountRoutes = require('./routes/accounts')
 const inquiryRoutes = require('./routes/inquiry')
+const wealthRoutes = require('./routes/wealth')
 const errorHandler = require('./middleware/errorHandler')
 
 const app = express()
@@ -19,6 +20,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/menus', menuRoutes)
 app.use('/api/accounts', accountRoutes)
 app.use('/api/inquiry', inquiryRoutes)
+app.use('/api/wealth', wealthRoutes)
 
 // 健康检查
 app.get('/health', (req, res) => res.json({ status: 'ok' }))

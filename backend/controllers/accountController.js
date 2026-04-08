@@ -179,4 +179,24 @@ async function updateCustomerInfo(req, res) {
   return res.json({ success: true, message: '信息更新成功' })
 }
 
-module.exports = { getAccounts, openAccount, cancelAccount, freezeAccount, unfreezeAccount, updateCustomerInfo }
+async function getAccountById(req, res) {
+  const { accountId } = req.params
+  const result = await db
+    .select({
+      id: accounts.id,
+      accountNo: accounts.accountNo,
+      balance: accounts.balance,
+      currency: accounts.currency,
+      accountStatus: accounts.status,
+    })
+    .from(accounts)
+    .where(eq(accounts.id, Number(accountId)))
+    .limit(1)
+
+  if (!result.length) {
+    return res.status(404).json({ success: false, message: '账户不存在' })
+  }
+  return res.json({ success: true, data: result[0] })
+}
+
+module.exports = { getAccounts, getAccountById, openAccount, cancelAccount, freezeAccount, unfreezeAccount, updateCustomerInfo }

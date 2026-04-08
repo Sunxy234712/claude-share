@@ -35,7 +35,7 @@ const routes = [
       { path: 'personal/deposit', component: () => import('../views/placeholder/PlaceholderView.vue'), meta: { title: '存取款与转账' } },
       { path: 'personal/inquiry', component: () => import('../views/personal/InquiryView.vue'), meta: { title: '账户查询' } },
       { path: 'personal/card', component: () => import('../views/placeholder/PlaceholderView.vue'), meta: { title: '银行卡业务' } },
-      { path: 'personal/wealth', component: () => import('../views/placeholder/PlaceholderView.vue'), meta: { title: '理财与贵金属' } },
+      { path: 'personal/wealth', component: () => import('../views/personal/WealthView.vue'), meta: { title: '理财与贵金属' } },
 
       // 对公业务
       { path: 'corporate/account', component: () => import('../views/placeholder/PlaceholderView.vue'), meta: { title: '单位账户管理' } },

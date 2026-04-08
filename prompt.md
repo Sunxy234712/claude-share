@@ -217,7 +217,126 @@ DashboardView 功能：
 
 ## 06. 个人业务 — 理财与贵金属
 
-> 待补充
+```
+实现 /personal/wealth 理财与贵金属页面，覆盖理财产品、基金、贵金属三大页签。
+
+数据库新增六张表（迁移文件：0004_optimal_moira_mactaggert.sql）：
+
+1. wealth_products（理财产品）
+   - product_code(varchar unique)、product_name、product_type(enum: fixed_income/structured/floating_rate)
+   - expected_return(numeric5,2, 年化收益率%)、min_amount/max_amount(numeric15,2)
+   - term_days(int)、status(enum: on_sale/off_sale/matured)
+
+2. wealth_orders（理财订单）
+   - account_id、product_id、order_no(unique, 格式WLT+YYYYMMDDhhmmss+3位随机数)
+   - amount、purchase_date、maturity_date、expected_income、actual_income
+   - status(enum: active/redeemed/matured)、redemption_date、teller_no
+
+3. funds（基金）
+   - fund_code(varchar unique, 如110022)、fund_name、fund_type(enum: equity/bond/mixed/money)
+   - nav(numeric10,4)、nav_date、performance_1m/performance_1y(numeric5,2, %)、manager
+   - status(enum: on_sale/suspended)
+
+4. fund_holdings（基金持仓）
+   - account_id、fund_id、shares(numeric15,4, 持仓份额)、purchase_price(numeric10,4)
+   - purchase_date、teller_no
+   - currentValue/profitLoss 为接口实时计算，不存库
+
+5. precious_metals（贵金属）
+   - metal_type(enum: gold/silver/platinum/copper)、purity(如Au9999)
+   - current_price(numeric12,2, 元/克)、price_update_time、daily_change(numeric5,2, %)
+   - status(enum: trading/suspension)
+
+6. metal_holdings（贵金属持仓）
+   - account_id、metal_id、amount(numeric12,2, 克数)、average_cost(numeric12,2)
+   - storage_type(enum: account/pending_delivery)、teller_no
+
+种子数据（db/resetWealth.js，可重复执行，执行前清空旧数据）：
+- 理财产品6条：工银稳健增益365天、招银进宝结构性、中银日日鑫浮动等真实命名
+- 基金8条：易方达消费行业(110022)、兴全合润(163402)、汇添富价值精选(519005)等，含真实基金经理
+- 贵金属4条：黄金Au9999(¥708.50/克)、白银Ag9999(¥8.32/克)、铂金Pt9995、铜Cu9999
+- 理财订单3条(accountId=1)、基金持仓3条(accountId=1)、贵金属持仓3条(accountId=1)
+- 同步将 accounts.id=1 余额更新为 100,000.00 以便演示购买
+
+后端接口（均需 authMiddleware，路由前缀 /api/wealth）：
+
+【理财产品】
+- GET  /products?status&productType&page&pageSize — 分页查询，支持状态/类型过滤
+- POST /orders — 购买，入参：{accountId, productId, amount}
+  校验余额 >= amount；扣减账户余额；计算预期收益 = amount × expectedReturn/100；
+  计算到期日 = 今天 + termDays；返回 orderNo
+- GET  /orders?accountId&page&pageSize — 订单列表，关联查询产品名称
+- PUT  /orders/:id/redeem — 赎回（仅 active 状态），返还本息，更新 actualIncome
+
+【基金】
+- GET  /funds?fundType&keyword&page&pageSize — 仅返回 on_sale 状态
+- POST /fund-holdings — 申购，入参：{accountId, fundId, amount}
+  最低1000元；份额 = amount/nav；支持累加持仓（同账户同基金合并）
+- GET  /fund-holdings?accountId — 持仓列表，实时计算 currentNav/currentValue/profitLoss/profitLossRate
+- PUT  /fund-holdings/:id/redeem — 按 shares 赎回，按当前净值计算退款金额
+
+【贵金属】
+- GET  /metals — 全部贵金属行情
+- GET  /metals/:id/quote — 单品行情详情
+- POST /metal-holdings — 积存，入参：{accountId, metalId, amount}（amount为克数）
+  totalCost = amount × currentPrice；支持累加持仓（更新 averageCost）
+- GET  /metal-holdings?accountId — 持仓列表，实时计算 currentValue/profitLoss
+- PUT  /metal-holdings/:id/exchange — 兑换，卖出原金属 → 买入目标金属，支持部分兑换
+- PUT  /metal-holdings/:id/delivery — 申请实物提取，更新 storage_type=pending_delivery
+  返回 deliveryNo(DEL+时间戳)、预计5天后交付
+
+账户余额接口（在 /api/accounts 路由下）：
+- GET  /api/accounts/:accountId — 返回单个账户余额（用于购买弹窗展示）
+
+前端 WealthView.vue（三大页签）：
+
+【理财产品页签】
+上区（产品列表）：
+  - 产品状态/类型下拉筛选 + 刷新按钮
+  - el-table：产品代码/产品名称/产品类型(el-tag)/预期收益/最低起购/期限/状态/购买按钮
+  - off_sale/matured 状态的购买按钮禁用
+下区（我的订单）：
+  - el-table：订单号/产品名称/购买金额/预期收益/购买日期/到期日期/状态/赎回按钮
+  - 仅 active 状态可赎回，点击弹出 ElMessageBox 二次确认
+
+购买弹窗：产品名/最低起购/最高上限/账户余额（实时从接口加载）/购买金额输入
+
+【基金页签】
+上区（基金列表）：
+  - 关键字搜索 + 基金类型筛选
+  - el-table：基金代码/名称/类型/净值/1月收益/1年收益(±着色)/基金经理/状态/申购按钮
+下区（基金持仓）：
+  - 汇总统计卡片：总投入/当前价值/总盈亏
+  - el-table：基金名称/持仓份额/持仓均价/当前净值/当前价值/盈亏/盈亏率/赎回按钮
+
+申购弹窗：基金名/当前净值/预计份额（实时计算）/余额/申购金额输入
+赎回弹窗：持仓份额/当前净值/赎回份额输入/预计金额实时计算
+
+【贵金属页签】
+上区（行情卡片）：
+  - 4个金属行情卡片（黄金/白银/铂金/铜），每60秒自动刷新
+  - 显示：名称/纯度/当前价/当日涨跌%（正绿负红）/更新时间
+下区（贵金属持仓）：
+  - card-header：标题"贵金属持仓" + 金属类型下拉筛选（同行展示，el-select固定150px宽）
+  - el-table（width:100%，列用min-width自适应）：
+    金属类型/纯度/持仓克数/平均成本/当前价值/盈亏
+  - 操作列（width:210px）：积存/兑换/提取三个按钮，flex行内不换行
+
+积存弹窗：选择金属/输入克数/显示当前价格和总成本/确认
+兑换弹窗：当前金属/选择目标金属/输入兑换克数/确认
+实物提取弹窗：输入提取克数/收货地址/确认
+
+通用工程要求：
+- axios 响应拦截器（request.js）：非401错误仅将后端 message 写入 error.message，
+  不弹 ElMessage，避免与组件 catch 块重复提示
+- 所有弹窗确认按钮绑定 :loading="submitting"，取消按钮绑定 :disabled="submitting"
+  submitting 在请求前设 true，finally 中设 false
+- 操作成功后刷新相关列表，购买/申购/积存后同步刷新账户余额
+- 页面 onMounted 并发加载所有数据（Promise.all），列表加载态用 el-skeleton
+- 金额显示统一用 toLocaleString('zh-CN', {minimumFractionDigits:2}) 格式化
+- 盈亏正数绿色(.is-profit)，负数红色(.is-loss)
+- 所有代码和注释使用中文
+```
 
 ---
 

@@ -13,7 +13,9 @@
       "Bash(xargs ls:*)",
       "Bash(npx drizzle-kit:*)",
       "Bash(node:*)",
-      "WebFetch(domain:www.runoob.com)"
+      "WebFetch(domain:www.runoob.com)",
+      "Bash(curl -X GET \"http://localhost:3000/api/wealth/products\" -H \"Authorization: Bearer invalid\")",
+      "Bash(pkill -f \"node index.js\")"
     ]
   }
 }

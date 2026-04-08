@@ -29,9 +29,9 @@ request.interceptors.response.use(
       const msg = error.response?.data?.message || '登录已过期，请重新登录'
       ElMessage.error(msg)
       router.push('/login')
-    } else {
-      const msg = error.response?.data?.message || '请求失败，请稍后重试'
-      ElMessage.error(msg)
+    } else if (error.response?.data?.message) {
+      // 将后端错误信息写入 error.message，由组件 catch 块统一显示，避免重复提示
+      error.message = error.response.data.message
     }
     return Promise.reject(error)
   }

@@ -3,6 +3,7 @@ const router = express.Router()
 const authMiddleware = require('../middleware/auth')
 const {
   getAccounts,
+  getAccountById,
   openAccount,
   cancelAccount,
   freezeAccount,
@@ -13,6 +14,7 @@ const {
 router.use(authMiddleware)
 
 router.get('/', getAccounts)
+router.get('/:accountId', getAccountById)
 router.post('/open', openAccount)
 router.put('/:accountId/cancel', cancelAccount)
 router.put('/:accountId/freeze', freezeAccount)
